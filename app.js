@@ -1,45 +1,34 @@
 import { CONFIG } from "./config.js";
 
-export const DEMO = CONFIG.firebase.apiKey === "YOUR_API_KEY" || CONFIG.cloudinary.cloudName === "YOUR_CLOUD_NAME";
-export const MAX_VIDEO_MB = 100; // Cloudinary free plan limit
-const V = "10.12.2";
-let _fb;
+export const DEMO = CONFIG.driveApi === "YOUR_APPS_SCRIPT_URL";
+export const MAX_VIDEO_MB = 500;
 
-async function fb() {
-  if (_fb) return _fb;
-  const base = `https://www.gstatic.com/firebasejs/${V}`;
-  const [app, fs] = await Promise.all([
-    import(`${base}/firebase-app.js`),
-    import(`${base}/firebase-firestore.js`),
-  ]);
-  const a = app.initializeApp(CONFIG.firebase);
-  _fb = { fs, db: fs.getFirestore(a) };
-  return _fb;
+// ---------- backend (Google Apps Script: Drive + Sheet) ----------
+async function api(body) {
+  // text/plain keeps this a "simple" request (no CORS preflight)
+  const r = await fetch(CONFIG.driveApi, { method: "POST", body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "server error");
+  return j;
 }
 
-// ---------- uploads (Cloudinary, unsigned) ----------
-function uploadFile(file, onProgress) {
-  const { cloudName, uploadPreset } = CONFIG.cloudinary;
-  return new Promise((resolve, reject) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("upload_preset", uploadPreset);
+async function uploadFile(file, onProgress) {
+  const mime = (file.type || "application/octet-stream").split(";")[0];
+  const name = crypto.randomUUID() + "_" + file.name.replace(/[^\w.\-]/g, "_");
+  const { url } = await api({ action: "init", name, mimeType: mime, size: file.size, origin: location.origin });
+  await new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+    x.open("PUT", url);
+    x.setRequestHeader("Content-Type", mime);
     x.upload.onprogress = e => e.lengthComputable && onProgress?.(e.loaded / e.total);
-    x.onload = () => {
-      if (x.status !== 200) return reject(new Error(x.responseText));
-      const url = JSON.parse(x.responseText).secure_url;
-      // videos: always serve as MP4 so every phone (incl. iPhone) can play them
-      resolve(file.type.startsWith("video/")
-        ? url.replace("/upload/", "/upload/f_mp4,vc_h264/").replace(/\.\w+$/, ".mp4") : url);
-    };
+    x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(new Error("upload " + x.status)));
     x.onerror = () => reject(new Error("network"));
-    x.send(fd);
+    x.send(file);
   });
+  return name;
 }
 
-/** Downscale big phone photos so uploads are fast and storage stays small. */
+/** Downscale big phone photos so uploads are fast. */
 export async function shrinkImage(file, max = 2000) {
   if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
   try {
@@ -61,21 +50,21 @@ export async function submitContribution({ name, relation, note, photos, video }
   }
   const files = [...photos, ...(video ? [video] : [])];
   const done = new Array(files.length).fill(0);
-  const report = () => onProgress(done.reduce((a, b) => a + b, 0) / Math.max(files.length, 1));
-  const urls = await Promise.all(files.map((f, i) =>
-    uploadFile(f, p => { done[i] = p; report(); })));
-  const { fs, db } = await fb();
-  await fs.addDoc(fs.collection(db, "contributions"), {
-    name, relation, note,
-    photos: urls.slice(0, photos.length),
-    video: video ? urls[photos.length] : null,
-    createdAt: fs.serverTimestamp(),
+  const report = () => onProgress((done.reduce((a, b) => a + b, 0) / Math.max(files.length, 1)) * 0.95);
+  const names = await Promise.all(files.map((f, i) => uploadFile(f, p => { done[i] = p; report(); })));
+  await api({
+    action: "finish", name, relation, note,
+    photoNames: names.slice(0, photos.length),
+    videoName: video ? names[photos.length] : "",
   });
+  onProgress(1);
 }
 
 // ---------- reading (gallery) ----------
 const svg = (c1, c2, t) => "data:image/svg+xml," + encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='700'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs><rect width='600' height='700' fill='url(#g)'/><text x='300' y='360' font-size='64' text-anchor='middle' fill='white' font-family='Georgia'>${t}</text></svg>`);
+
+const driveImg = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
 
 export async function loadContributions() {
   if (DEMO) {
@@ -86,9 +75,15 @@ export async function loadContributions() {
       { name: "Karan", relation: "Brother", note: "Happy birthday didi! Thanks for always covering for me.", photos: [svg("#b9f6a5", "#6fe89b", "Diwali"), svg("#d3a5f6", "#a96fe8", "Trip")], video: null },
     ];
   }
-  const { fs, db } = await fb();
-  const snap = await fs.getDocs(fs.query(fs.collection(db, "contributions"), fs.orderBy("createdAt", "asc")));
-  return snap.docs.map(d => d.data());
+  const r = await fetch(`${CONFIG.driveApi}?action=list`);
+  const j = await r.json();
+  return (j.items || []).map(c => ({
+    name: c.name, relation: c.relation, note: c.note,
+    photos: c.photos.map(id => driveImg(id, 1600)),
+    video: c.video ? `https://drive.google.com/file/d/${encodeURIComponent(c.video)}/preview` : null,
+    videoThumb: c.video ? driveImg(c.video, 640) : null,
+    drive: true,
+  }));
 }
 
 // ---------- shared UI helpers ----------

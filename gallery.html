@@ -83,8 +83,15 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
 
 function playVideo(i) {
   qi = i; const c = queue[i];
-  show(`<video id="pv" src="${esc(c.video)}" controls autoplay playsinline></video><div class="cap">${esc(c.name)} · ${esc(c.relation)}</div>`);
-  $("pv").onended = () => { if (qi + 1 < queue.length) playVideo(qi + 1); else hide(); };
+  const player = c.drive
+    ? `<iframe class="drv" src="${esc(c.video)}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
+    : `<video id="pv" src="${esc(c.video)}" controls autoplay playsinline></video>`;
+  const nav = queue.length > 1
+    ? `<div class="vnav"><button class="btn alt" id="pvPrev" ${i === 0 ? "disabled" : ""}>‹ Previous</button><button class="btn alt" id="pvNext" ${i === queue.length - 1 ? "disabled" : ""}>Next ›</button></div>` : "";
+  show(`${player}<div class="cap">${esc(c.name)} · ${esc(c.relation)}</div>${nav}`);
+  if ($("pv")) $("pv").onended = () => { if (qi + 1 < queue.length) playVideo(qi + 1); };
+  if ($("pvPrev")) $("pvPrev").onclick = () => playVideo(qi - 1);
+  if ($("pvNext")) $("pvNext").onclick = () => playVideo(qi + 1);
 }
 
 function render(list) {
@@ -96,7 +103,10 @@ function render(list) {
   $("reel").innerHTML = vids.length ? "" : '<p class="hint">No videos yet.</p>';
   vids.forEach((c, i) => {
     const d = document.createElement("div"); d.className = "vid";
-    d.innerHTML = `<video src="${esc(c.video)}#t=0.5" preload="metadata" muted></video><div class="hand">${esc(c.name)}</div><div class="hint">${esc(c.relation)}</div>`;
+    const thumb = c.drive
+      ? `<img class="vthumb" loading="lazy" src="${esc(c.videoThumb)}" alt="">`
+      : `<video src="${esc(c.video)}#t=0.5" preload="metadata" muted></video>`;
+    d.innerHTML = `${thumb}<div class="hand">${esc(c.name)}</div><div class="hint">${esc(c.relation)}</div>`;
     d.onclick = () => { queue = vids; playVideo(i); };
     $("reel").append(d);
   });

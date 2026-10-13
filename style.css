@@ -84,6 +84,10 @@ footer { text-align: center; padding: 40px 0 60px; opacity: .7; }
 .tabs b { font-weight: 700; opacity: .75; margin-left: 4px; }
 #videos, #photos, #notesec { scroll-margin-top: 64px; }
 .vid { position: relative; }
+.vthumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 4px; background: #333; display: block; }
+.modal iframe.drv { width: min(92vw, 900px); height: min(70vh, 520px); border: 0; border-radius: 6px; background: #000; }
+.vnav { display: flex; gap: 12px; justify-content: center; margin-top: 14px; }
+.vnav .btn { padding: 10px 20px; font-size: .95rem; } .vnav .btn:disabled { opacity: .35; cursor: default; }
 .vid::after { content: "▶"; position: absolute; left: 50%; top: calc(10px + 31%); transform: translate(-50%, -50%); width: 54px; height: 54px;
   border-radius: 50%; background: rgba(232, 111, 140, .92); color: #fff; display: grid; place-items: center; font-size: 1.3rem; padding-left: 4px; pointer-events: none; }
 @media (max-width: 600px) {
