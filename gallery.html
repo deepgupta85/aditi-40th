@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aditi's 40th Scrapbook</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="lock" id="lock">
+  <div>
+    <div class="hand" style="font-size:2rem;color:var(--rose)">something special is waiting…</div>
+    <h1 id="lockTitle">A gift for Aditi</h1>
+    <div class="cds" id="cds"></div>
+    <p id="lockMsg">It opens on her birthday.</p>
+    <input type="text" id="pw" placeholder="Secret password" autocomplete="off">
+    <button class="btn" id="open">Open my gift 🎁</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<main id="main" hidden>
+  <header class="hero wrap">
+    <div class="hand">with all our love</div>
+    <h1>Happy 40th, <em id="nm">Aditi</em>!</h1>
+    <p class="lead" id="sub"></p>
+    <button class="btn" id="playAll">▶ Play all video messages</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <a href="#videos" class="on">🎬 Videos <b id="cV"></b></a>
+    <a href="#photos">📸 Photos <b id="cP"></b></a>
+    <a href="#notesec">💌 Notes <b id="cN"></b></a>
+  </nav>
+
+  <section class="wrap" id="videos"><h2>🎬 Video messages</h2><div class="reel" id="reel"></div></section>
+  <section class="wrap" id="photos"><h2>📸 Memories with you</h2><div class="wall" id="wall"></div></section>
+  <section class="wrap" id="notesec"><h2>💌 Post-it notes for you</h2><div class="notes" id="notes"></div></section>
+  <footer class="hand" style="font-size:1.6rem">Here's to the next 40 💛</footer>
+</main>
+
+<div class="modal" id="modal"><button class="x" id="mx">×</button><div id="mbody" style="text-align:center"></div></div>
+
+<script type="module">
+import { CONFIG } from "./config.js";
+import { DEMO, countdown, confetti, loadContributions, esc } from "./app.js";
+
+const $ = id => document.getElementById(id);
+$("lockTitle").textContent = `A gift for ${CONFIG.herName}`;
+document.title = `${CONFIG.herName}'s ${CONFIG.age}th Scrapbook`;
+$("nm").textContent = CONFIG.herName;
+let unlocked = Date.now() >= new Date(CONFIG.birthday).getTime();
+countdown(CONFIG.birthday, $("cds"), () => { unlocked = true; $("lockMsg").textContent = "It's time! 🎉"; });
+if (!unlocked) $("lockMsg").textContent = "It opens on her birthday.";
+if (DEMO) $("lockMsg").textContent += ` (Demo preview — admin password: ${CONFIG.adminPassword})`;
+
+const go = async () => {
+  const v = $("pw").value.trim();
+  const admin = v === CONFIG.adminPassword;
+  if (!admin && !(unlocked && v === CONFIG.giftPassword)) {
+    $("err").textContent = v === CONFIG.giftPassword ? "Not quite yet — wait for the countdown! ⏳" : "Hmm, that's not it. Try again?";
+    return;
+  }
+  $("lock").hidden = true; $("main").hidden = false; confetti(5000);
+  const list = await loadContributions();
+  render(list);
+};
+$("open").onclick = go;
+$("pw").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+
+// highlight the tab for the section currently in view
+const links = [...document.querySelectorAll("#tabs a")];
+const spy = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+}), { rootMargin: "-40% 0px -55% 0px" });
+["videos", "photos", "notesec"].forEach(id => spy.observe($(id)));
+
+let queue = [], qi = 0;
+function show(html) { $("mbody").innerHTML = html; $("modal").classList.add("on"); }
+function hide() { $("modal").classList.remove("on"); $("mbody").innerHTML = ""; queue = []; }
+$("mx").onclick = hide; $("modal").onclick = e => e.target === $("modal") && hide();
+document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+
+function playVideo(i) {
+  qi = i; const c = queue[i];
+  show(`<video id="pv" src="${esc(c.video)}" controls autoplay playsinline></video><div class="cap">${esc(c.name)} · ${esc(c.relation)}</div>`);
+  $("pv").onended = () => { if (qi + 1 < queue.length) playVideo(qi + 1); else hide(); };
+}
+
+function render(list) {
+  const people = list.length;
+  const photos = list.flatMap(c => c.photos.map(src => ({ src, name: c.name })));
+  const vids = list.filter(c => c.video);
+  $("sub").textContent = `${people} people who love you sent ${photos.length} photos and ${vids.length} video messages.`;
+
+  $("reel").innerHTML = vids.length ? "" : '<p class="hint">No videos yet.</p>';
+  vids.forEach((c, i) => {
+    const d = document.createElement("div"); d.className = "vid";
+    d.innerHTML = `<video src="${esc(c.video)}#t=0.5" preload="metadata" muted></video><div class="hand">${esc(c.name)}</div><div class="hint">${esc(c.relation)}</div>`;
+    d.onclick = () => { queue = vids; playVideo(i); };
+    $("reel").append(d);
+  });
+  $("playAll").hidden = !vids.length;
+  $("playAll").onclick = () => { queue = vids; playVideo(0); };
+  const notes = list.filter(c => c.note);
+  $("cV").textContent = vids.length; $("cP").textContent = photos.length; $("cN").textContent = notes.length;
+
+  $("wall").innerHTML = "";
+  photos.forEach((p, i) => {
+    const d = document.createElement("div"); d.className = "pola";
+    d.style.transform = `rotate(${(((i * 37) % 7) - 3)}deg)`;
+    d.innerHTML = `<img loading="lazy" src="${esc(p.src)}"><span>${esc(p.name)}</span>`;
+    d.onclick = () => show(`<img src="${esc(p.src)}"><div class="cap">${esc(p.name)}</div>`);
+    $("wall").append(d);
+  });
+
+  $("notes").innerHTML = notes.map(c =>
+    `<div class="note">“${esc(c.note)}”<small>— ${esc(c.name)}, ${esc(c.relation)}</small></div>`).join("")
+    || '<p class="hint">No notes yet.</p>';
+}
+</script>
+</body>
+</html>

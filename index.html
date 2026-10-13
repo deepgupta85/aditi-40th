@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aditi turns 40! 🎉 Leave a memory</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero wrap">
+  <div class="hand">a little secret project…</div>
+  <h1>Let's make <em id="name">Aditi</em>'s<br>40th unforgettable</h1>
+  <div class="big40">40</div>
+  <p class="lead">Forty years of laughs, trips, late nights and love. Share photos with her, a short video message or a little post-it note, and it all goes into a surprise gift scrapbook.</p>
+  <div class="cds" id="cds"></div>
+  <a class="btn" href="#share">Add my memory ✨</a>
+  <p class="hint" style="margin-top:14px">🤫 Shhh! Please don't tell Aditi.</p>
+</header>
+
+<section class="wrap">
+  <div class="steps">
+    <div class="card"><div class="emoji">📸</div><h3>Photos</h3><p>One or many. Anything with her in it, old or new.</p></div>
+    <div class="card"><div class="emoji">🎬</div><h3>Video message</h3><p>30–60 seconds from the heart. Record right here or upload one.</p></div>
+    <div class="card"><div class="emoji">💌</div><h3>Post-it note</h3><p>A short wish or memory. Share one, two or all three!</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="share">
+  <form class="card" id="form">
+    <h2>Your memory for <span class="nm">Aditi</span></h2>
+    <p class="hint">No login needed. Share any one of the three below, or all of them!</p>
+    <div class="row">
+      <div><label for="who">Your name</label><input type="text" id="who" required maxlength="60" placeholder="e.g. Riya"></div>
+      <div><label for="rel">How do you know her? <span class="hint">(optional)</span></label><input type="text" id="rel" maxlength="80" placeholder="e.g. College friend, cousin…"></div>
+    </div>
+
+    <h3 class="sechead">📸 Photos with her <span class="hint">(as many as you like)</span></h3>
+    <div class="drop" id="drop">📷 Tap to choose photos<div class="hint">or drag them here</div></div>
+    <input type="file" id="photos" accept="image/*" multiple hidden>
+    <div class="polas" id="pholist"></div>
+
+    <h3 class="sechead">🎬 Video message</h3>
+    <div class="vidbox">
+      <div class="vidbtns">
+        <button type="button" class="btn alt" id="recBtn">🔴 Record now</button>
+        <button type="button" class="btn alt" id="upBtn">📁 Upload a video</button>
+        <button type="button" class="btn alt" id="clrBtn" hidden>🗑 Remove</button>
+      </div>
+      <input type="file" id="vidfile" accept="video/*" hidden>
+      <div id="recstat" class="hint"></div>
+      <video id="vidprev" controls playsinline hidden></video>
+    </div>
+
+    <h3 class="sechead">💌 Post-it note</h3>
+    <div class="postit"><textarea id="note" rows="4" maxlength="300" placeholder="Write a wish, a memory, an inside joke…"></textarea><small id="cnt">0 / 300</small></div>
+
+    <div class="bar" id="bar"><i id="barfill"></i></div>
+    <div class="err" id="err"></div>
+    <p style="text-align:center;margin-top:24px"><button class="btn" id="send">Send my love 💌</button></p>
+  </form>
+
+  <div class="card thanks" id="thanks">
+    <h2>Thank you, <span id="tyname"></span>! 💖</h2>
+    <p>Your memory is safely tucked into the scrapbook.<br>Remember — it's a surprise!</p>
+    <button class="btn alt" onclick="location.reload()">Add another</button>
+  </div>
+</section>
+
+<footer class="hand" style="font-size:1.5rem">Made with love 💛</footer>
+
+<script type="module">
+import { CONFIG } from "./config.js";
+import { DEMO, countdown, confetti, shrinkImage, submitContribution } from "./app.js";
+
+document.title = `${CONFIG.herName} turns ${CONFIG.age}! 🎉 Leave a memory`;
+document.getElementById("name").textContent = CONFIG.herName;
+document.querySelectorAll(".nm").forEach(e => e.textContent = CONFIG.herName);
+document.querySelector(".big40").textContent = CONFIG.age;
+countdown(CONFIG.birthday, document.getElementById("cds"));
+confetti();
+if (DEMO) document.querySelector(".hint").insertAdjacentHTML("afterend", '<p class="hint">🧪 Demo mode: nothing is actually uploaded.</p>');
+
+const $ = id => document.getElementById(id);
+let photos = [], video = null, stream = null, recorder = null;
+
+// ----- photos -----
+const renderPhotos = () => {
+  $("pholist").innerHTML = "";
+  photos.forEach((f, i) => {
+    const d = document.createElement("div"); d.className = "pola";
+    d.innerHTML = `<img src="${URL.createObjectURL(f)}"><button type="button" aria-label="remove">×</button>`;
+    d.querySelector("button").onclick = () => { photos.splice(i, 1); renderPhotos(); };
+    $("pholist").append(d);
+  });
+};
+const addPhotos = files => { photos.push(...[...files].filter(f => f.type.startsWith("image/"))); renderPhotos(); };
+$("drop").onclick = () => $("photos").click();
+$("photos").onchange = e => { addPhotos(e.target.files); e.target.value = ""; };
+$("drop").ondragover = e => e.preventDefault();
+$("drop").ondrop = e => { e.preventDefault(); addPhotos(e.dataTransfer.files); };
+
+// ----- video -----
+const setVideo = f => {
+  video = f; const p = $("vidprev");
+  p.hidden = !f; $("clrBtn").hidden = !f; $("recstat").textContent = "";
+  if (f) { p.srcObject = null; p.muted = false; p.src = URL.createObjectURL(f); p.controls = true; }
+};
+$("upBtn").onclick = () => $("vidfile").click();
+$("vidfile").onchange = e => { if (e.target.files[0]) setVideo(e.target.files[0]); };
+$("clrBtn").onclick = () => setVideo(null);
+
+$("recBtn").onclick = async () => {
+  if (recorder?.state === "recording") { recorder.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { $("err").textContent = "Recording isn't supported here — please use Upload."; return; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+  } catch { $("err").textContent = "Couldn't access camera/mic. You can upload a video instead."; return; }
+  $("err").textContent = "";
+  const p = $("vidprev"); p.hidden = false; p.srcObject = stream; p.muted = true; p.controls = false; p.play();
+  const chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    const type = recorder.mimeType || "video/webm";
+    setVideo(new File(chunks, `message.${type.includes("mp4") ? "mp4" : "webm"}`, { type }));
+    $("recBtn").textContent = "🔴 Record again";
+  };
+  recorder.start();
+  $("recBtn").textContent = "⏹ Stop recording";
+  $("recstat").innerHTML = '<span class="rec">● Recording…</span> tap Stop when done';
+};
+
+$("note").addEventListener("input", () => $("cnt").textContent = `${$("note").value.length} / 300`);
+
+// ----- submit -----
+$("form").onsubmit = async e => {
+  e.preventDefault(); $("err").textContent = "";
+  if (!photos.length && !video && !$("note").value.trim()) { $("err").textContent = "Please add a photo, a video or a note 🙂"; return; }
+  if (video && video.size > 300 * 1024 * 1024) { $("err").textContent = "That video is over 300 MB — try a shorter one."; return; }
+  $("send").disabled = true; $("send").textContent = "Uploading…";
+  $("bar").style.display = "block";
+  try {
+    const small = await Promise.all(photos.map(f => shrinkImage(f)));
+    await submitContribution(
+      { name: $("who").value.trim(), relation: $("rel").value.trim(), note: $("note").value.trim(), photos: small, video },
+      p => $("barfill").style.width = Math.round(p * 100) + "%");
+    $("tyname").textContent = $("who").value.trim();
+    $("form").style.display = "none"; $("thanks").style.display = "block";
+    $("thanks").scrollIntoView({ behavior: "smooth" }); confetti(5000);
+  } catch (err) {
+    console.error(err); $("err").textContent = "Something went wrong — please try again.";
+    $("send").disabled = false; $("send").textContent = "Send my love 💌";
+  }
+};
+</script>
+</body>
+</html>
