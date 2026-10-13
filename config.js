@@ -11,14 +11,20 @@ export const CONFIG = {
   // Password YOU use to preview the gallery any time before the birthday
   adminPassword: "preview-only-me",
 
-  // Paste your Firebase web-app config here (see README.md).
-  // While apiKey is "YOUR_API_KEY" the site runs in DEMO MODE (nothing is uploaded).
+  // Free Cloudinary account: photos and videos are uploaded here.
+  // While cloudName is "YOUR_CLOUD_NAME" the site runs in DEMO MODE (nothing is uploaded).
+  cloudinary: {
+    cloudName: "YOUR_CLOUD_NAME",
+    uploadPreset: "aditi40", // an UNSIGNED upload preset
+  },
+
+  // Firebase (free Firestore database only: names + notes + links to the media)
   firebase: {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "000000000000",
-    appId: "1:000000000000:web:0000000000000000",
+    apiKey: "AIzaSyAPdD31wXXw5g4Kahd3tAs9iEA3f3WngnU",
+    authDomain: "aditi40-bday-2026.firebaseapp.com",
+    projectId: "aditi40-bday-2026",
+    storageBucket: "aditi40-bday-2026.firebasestorage.app",
+    messagingSenderId: "964409014728",
+    appId: "1:964409014728:web:3fd0a47c78b16d74a368fd",
   },
 };

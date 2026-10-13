@@ -70,7 +70,7 @@
 
 <script type="module">
 import { CONFIG } from "./config.js";
-import { DEMO, countdown, confetti, shrinkImage, submitContribution } from "./app.js";
+import { DEMO, MAX_VIDEO_MB, countdown, confetti, shrinkImage, submitContribution } from "./app.js";
 
 document.title = `${CONFIG.herName} turns ${CONFIG.age}! 🎉 Leave a memory`;
 document.getElementById("name").textContent = CONFIG.herName;
@@ -137,7 +137,7 @@ $("note").addEventListener("input", () => $("cnt").textContent = `${$("note").va
 $("form").onsubmit = async e => {
   e.preventDefault(); $("err").textContent = "";
   if (!photos.length && !video && !$("note").value.trim()) { $("err").textContent = "Please add a photo, a video or a note 🙂"; return; }
-  if (video && video.size > 300 * 1024 * 1024) { $("err").textContent = "That video is over 300 MB — try a shorter one."; return; }
+  if (video && video.size > MAX_VIDEO_MB * 1024 * 1024) { $("err").textContent = `That video is over ${MAX_VIDEO_MB} MB — please keep it to about a minute.`; return; }
   $("send").disabled = true; $("send").textContent = "Uploading…";
   $("bar").style.display = "block";
   try {

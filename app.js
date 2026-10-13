@@ -1,32 +1,42 @@
 import { CONFIG } from "./config.js";
 
-export const DEMO = CONFIG.firebase.apiKey === "YOUR_API_KEY";
+export const DEMO = CONFIG.firebase.apiKey === "YOUR_API_KEY" || CONFIG.cloudinary.cloudName === "YOUR_CLOUD_NAME";
+export const MAX_VIDEO_MB = 100; // Cloudinary free plan limit
 const V = "10.12.2";
 let _fb;
 
 async function fb() {
   if (_fb) return _fb;
   const base = `https://www.gstatic.com/firebasejs/${V}`;
-  const [app, fs, st] = await Promise.all([
+  const [app, fs] = await Promise.all([
     import(`${base}/firebase-app.js`),
     import(`${base}/firebase-firestore.js`),
-    import(`${base}/firebase-storage.js`),
   ]);
   const a = app.initializeApp(CONFIG.firebase);
-  _fb = { fs, st, db: fs.getFirestore(a), storage: st.getStorage(a) };
+  _fb = { fs, db: fs.getFirestore(a) };
   return _fb;
 }
 
-// ---------- uploads ----------
-function uploadFile(path, file, onProgress) {
-  return fb().then(({ st, storage }) => new Promise((resolve, reject) => {
-    const r = st.ref(storage, path);
-    const task = st.uploadBytesResumable(r, file, { contentType: file.type });
-    task.on("state_changed",
-      s => onProgress?.(s.bytesTransferred / s.totalBytes),
-      reject,
-      async () => resolve(await st.getDownloadURL(r)));
-  }));
+// ---------- uploads (Cloudinary, unsigned) ----------
+function uploadFile(file, onProgress) {
+  const { cloudName, uploadPreset } = CONFIG.cloudinary;
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", uploadPreset);
+    const x = new XMLHttpRequest();
+    x.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+    x.upload.onprogress = e => e.lengthComputable && onProgress?.(e.loaded / e.total);
+    x.onload = () => {
+      if (x.status !== 200) return reject(new Error(x.responseText));
+      const url = JSON.parse(x.responseText).secure_url;
+      // videos: always serve as MP4 so every phone (incl. iPhone) can play them
+      resolve(file.type.startsWith("video/")
+        ? url.replace("/upload/", "/upload/f_mp4,vc_h264/").replace(/\.\w+$/, ".mp4") : url);
+    };
+    x.onerror = () => reject(new Error("network"));
+    x.send(fd);
+  });
 }
 
 /** Downscale big phone photos so uploads are fast and storage stays small. */
@@ -49,12 +59,11 @@ export async function submitContribution({ name, relation, note, photos, video }
     for (let i = 1; i <= 10; i++) { await new Promise(r => setTimeout(r, 120)); onProgress(i / 10); }
     return;
   }
-  const id = crypto.randomUUID();
-  const files = [...photos.map((f, i) => ({ f, key: `photo-${i}` })), ...(video ? [{ f: video, key: "video" }] : [])];
+  const files = [...photos, ...(video ? [video] : [])];
   const done = new Array(files.length).fill(0);
   const report = () => onProgress(done.reduce((a, b) => a + b, 0) / Math.max(files.length, 1));
-  const urls = await Promise.all(files.map(({ f, key }, i) =>
-    uploadFile(`uploads/${id}/${key}-${f.name.replace(/[^\w.\-]/g, "_")}`, f, p => { done[i] = p; report(); })));
+  const urls = await Promise.all(files.map((f, i) =>
+    uploadFile(f, p => { done[i] = p; report(); })));
   const { fs, db } = await fb();
   await fs.addDoc(fs.collection(db, "contributions"), {
     name, relation, note,
