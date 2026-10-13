@@ -7,7 +7,7 @@ export const CONFIG = {
   birthday: "2026-11-06T00:00:00",
 
   // Password Aditi types on the gallery page (works only after the birthday)
-  giftPassword: "aditi40",
+  giftPassword: "aditi@40",
   // Password YOU use to preview the gallery any time before the birthday
   adminPassword: "preview-only-me",
 
