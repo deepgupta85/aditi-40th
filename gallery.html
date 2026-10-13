@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Aditi's 40th Scrapbook</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -104,7 +105,7 @@ function render(list) {
   vids.forEach((c, i) => {
     const d = document.createElement("div"); d.className = "vid";
     const thumb = c.drive
-      ? `<img class="vthumb" loading="lazy" src="${esc(c.videoThumb)}" alt="">`
+      ? `<img class="vthumb" referrerpolicy="no-referrer" loading="lazy" src="${esc(c.videoThumb)}" alt="">`
       : `<video src="${esc(c.video)}#t=0.5" preload="metadata" muted></video>`;
     d.innerHTML = `${thumb}<div class="hand">${esc(c.name)}</div><div class="hint">${esc(c.relation)}</div>`;
     d.onclick = () => { queue = vids; playVideo(i); };
@@ -119,8 +120,8 @@ function render(list) {
   photos.forEach((p, i) => {
     const d = document.createElement("div"); d.className = "pola";
     d.style.transform = `rotate(${(((i * 37) % 7) - 3)}deg)`;
-    d.innerHTML = `<img loading="lazy" src="${esc(p.src)}"><span>${esc(p.name)}</span>`;
-    d.onclick = () => show(`<img src="${esc(p.src)}"><div class="cap">${esc(p.name)}</div>`);
+    d.innerHTML = `<img referrerpolicy="no-referrer" loading="lazy" src="${esc(p.src)}"><span>${esc(p.name)}</span>`;
+    d.onclick = () => show(`<img referrerpolicy="no-referrer" src="${esc(p.src)}"><div class="cap">${esc(p.name)}</div>`);
     $("wall").append(d);
   });
 

@@ -13,5 +13,5 @@ export const CONFIG = {
 
   // The Google Apps Script web-app URL (see SETUP.md). Photos/videos go to your Google Drive.
   // While this is "YOUR_APPS_SCRIPT_URL" the site runs in DEMO MODE (nothing is uploaded).
-  driveApi: "YOUR_APPS_SCRIPT_URL",
+  driveApi: "https://script.google.com/macros/s/AKfycbyRTRvf3wt76gVh4lRt4-URNmVn-hkZzU3uYdv82kCoNsxyv6gm7OGvlDhU6evH618A/exec",
 };
