@@ -50,7 +50,8 @@ const $ = id => document.getElementById(id);
 $("lockTitle").textContent = `A gift for ${CONFIG.herName}`;
 document.title = `${CONFIG.herName}'s ${CONFIG.age}th Scrapbook`;
 $("nm").textContent = CONFIG.herName;
-$("lockMsg").textContent = "Enter the secret password to open your gift.";
+countdown(CONFIG.birthday, $("cds"), () => { $("lockMsg").textContent = "It's time! 🎉 Enter the secret password to open your gift."; });
+$("lockMsg").textContent = "Counting down to your big day… enter the secret password to open your gift.";
 if (DEMO) $("lockMsg").textContent += ` (Demo preview — admin password: ${CONFIG.adminPassword})`;
 
 const go = async () => {
