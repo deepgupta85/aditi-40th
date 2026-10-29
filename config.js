@@ -11,6 +11,9 @@ export const CONFIG = {
   // Password YOU use to preview the gallery any time before the birthday
   adminPassword: "preview-only-me",
 
+  // Entries with these names are hidden from the gallery (test uploads)
+  hiddenNames: ["Deep", "TEST (delete me)"],
+
   // The Google Apps Script web-app URL (see SETUP.md). Photos/videos go to your Google Drive.
   // While this is "YOUR_APPS_SCRIPT_URL" the site runs in DEMO MODE (nothing is uploaded).
   driveApi: "https://script.google.com/macros/s/AKfycbyRTRvf3wt76gVh4lRt4-URNmVn-hkZzU3uYdv82kCoNsxyv6gm7OGvlDhU6evH618A/exec",

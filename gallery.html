@@ -40,7 +40,12 @@
   <footer class="hand" style="font-size:1.6rem">Here's to the next 40 💛</footer>
 </main>
 
-<div class="modal" id="modal"><button class="x" id="mx">×</button><div id="mbody" style="text-align:center"></div></div>
+<div class="modal" id="modal">
+  <button class="x" id="mx" aria-label="Close">×</button>
+  <button class="arrow l" id="mprev" aria-label="Previous">‹</button>
+  <div id="mbody" style="text-align:center"></div>
+  <button class="arrow r" id="mnext" aria-label="Next">›</button>
+</div>
 
 <script type="module">
 import { CONFIG } from "./config.js";
@@ -61,7 +66,8 @@ const go = async () => {
     return;
   }
   $("lock").hidden = true; $("main").hidden = false; confetti(5000);
-  const list = await loadContributions();
+  const hidden = (CONFIG.hiddenNames || []).map(n => n.toLowerCase());
+  const list = (await loadContributions()).filter(c => !hidden.includes(String(c.name).trim().toLowerCase()));
   render(list);
 };
 $("open").onclick = go;
@@ -74,29 +80,47 @@ const spy = new IntersectionObserver(es => es.forEach(e => {
 }), { rootMargin: "-40% 0px -55% 0px" });
 ["videos", "photos", "notesec"].forEach(id => spy.observe($(id)));
 
-let queue = [], qi = 0;
-function show(html) { $("mbody").innerHTML = html; $("modal").classList.add("on"); }
-function hide() { $("modal").classList.remove("on"); $("mbody").innerHTML = ""; queue = []; }
-$("mx").onclick = hide; $("modal").onclick = e => e.target === $("modal") && hide();
-document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
-
-function playVideo(i) {
-  qi = i; const c = queue[i];
-  const player = c.drive
-    ? `<iframe class="drv" src="${esc(c.video)}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
-    : `<video id="pv" src="${esc(c.video)}" controls autoplay playsinline></video>`;
-  const nav = queue.length > 1
-    ? `<div class="vnav"><button class="btn alt" id="pvPrev" ${i === 0 ? "disabled" : ""}>‹ Previous</button><button class="btn alt" id="pvNext" ${i === queue.length - 1 ? "disabled" : ""}>Next ›</button></div>` : "";
-  show(`${player}<div class="cap">${esc(c.name)} · ${esc(c.relation)}</div>${nav}`);
-  if ($("pv")) $("pv").onended = () => { if (qi + 1 < queue.length) playVideo(qi + 1); };
-  if ($("pvPrev")) $("pvPrev").onclick = () => playVideo(qi - 1);
-  if ($("pvNext")) $("pvNext").onclick = () => playVideo(qi + 1);
+// ----- viewer: photos or videos, with arrows, swipe and keyboard -----
+let items = [], idx = 0;
+function draw() {
+  const it = items[idx];
+  const media = it.kind === "photo"
+    ? `<img referrerpolicy="no-referrer" src="${esc(it.src)}" alt="">`
+    : it.drive
+      ? `<iframe class="drv" src="${esc(it.video)}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
+      : `<video id="pv" src="${esc(it.video)}" controls autoplay playsinline></video>`;
+  const who = it.kind === "photo" ? esc(it.name) : `${esc(it.name)}${it.relation ? " · " + esc(it.relation) : ""}`;
+  $("mbody").innerHTML = `${media}<div class="cap">${who}</div><div class="count">${idx + 1} / ${items.length}</div>`;
+  if ($("pv")) $("pv").onended = () => step(1);
+  const multi = items.length > 1;
+  $("mprev").hidden = $("mnext").hidden = !multi;
 }
+function openViewer(list, i) { items = list; idx = i; $("modal").classList.add("on"); draw(); }
+function step(d) { if (items.length > 1) { idx = (idx + d + items.length) % items.length; draw(); } }
+function hide() { $("modal").classList.remove("on"); $("mbody").innerHTML = ""; items = []; }
+$("mx").onclick = hide;
+$("mprev").onclick = e => { e.stopPropagation(); step(-1); };
+$("mnext").onclick = e => { e.stopPropagation(); step(1); };
+$("modal").onclick = e => (e.target === $("modal") || e.target === $("mbody")) && hide();
+document.addEventListener("keydown", e => {
+  if (!$("modal").classList.contains("on")) return;
+  if (e.key === "Escape") hide();
+  if (e.key === "ArrowLeft") step(-1);
+  if (e.key === "ArrowRight") step(1);
+});
+let tx = null, ty = null;
+$("modal").addEventListener("touchstart", e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+$("modal").addEventListener("touchend", e => {
+  if (tx === null) return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  tx = ty = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+}, { passive: true });
 
 function render(list) {
   const people = list.length;
-  const photos = list.flatMap(c => c.photos.map(src => ({ src, name: c.name })));
-  const vids = list.filter(c => c.video);
+  const photos = list.flatMap(c => c.photos.map(src => ({ kind: "photo", src, name: c.name })));
+  const vids = list.filter(c => c.video).map(c => ({ ...c, kind: "video" }));
   $("sub").textContent = `${people} people who love you sent ${photos.length} photos and ${vids.length} video messages.`;
 
   $("reel").innerHTML = vids.length ? "" : '<p class="hint">No videos yet.</p>';
@@ -106,11 +130,11 @@ function render(list) {
       ? `<img class="vthumb" referrerpolicy="no-referrer" loading="lazy" src="${esc(c.videoThumb)}" alt="">`
       : `<video src="${esc(c.video)}#t=0.5" preload="metadata" muted></video>`;
     d.innerHTML = `${thumb}<div class="hand">${esc(c.name)}</div><div class="hint">${esc(c.relation)}</div>`;
-    d.onclick = () => { queue = vids; playVideo(i); };
+    d.onclick = () => openViewer(vids, i);
     $("reel").append(d);
   });
   $("playAll").hidden = !vids.length;
-  $("playAll").onclick = () => { queue = vids; playVideo(0); };
+  $("playAll").onclick = () => openViewer(vids, 0);
   const notes = list.filter(c => c.note);
   $("cV").textContent = vids.length; $("cP").textContent = photos.length; $("cN").textContent = notes.length;
 
@@ -119,7 +143,7 @@ function render(list) {
     const d = document.createElement("div"); d.className = "pola";
     d.style.transform = `rotate(${(((i * 37) % 7) - 3)}deg)`;
     d.innerHTML = `<img referrerpolicy="no-referrer" loading="lazy" src="${esc(p.src)}"><span>${esc(p.name)}</span>`;
-    d.onclick = () => show(`<img referrerpolicy="no-referrer" src="${esc(p.src)}"><div class="cap">${esc(p.name)}</div>`);
+    d.onclick = () => openViewer(photos, i);
     $("wall").append(d);
   });
 
