@@ -142,3 +142,5 @@ footer { text-align: center; padding: 40px 0 60px; opacity: .7; }
   .people button:hover { background: #fff; }
   .people button.on { background: var(--rose); }
 }
+
+.logout { position: absolute; top: 14px; right: 16px; z-index: 5; padding: 8px 16px; font-size: .9rem; }

@@ -20,7 +20,8 @@
   </div>
 </div>
 
-<main id="main" hidden>
+<main id="main" hidden style="position:relative">
+  <button class="btn logout" id="logout">Log out</button>
   <header class="hero wrap">
     <div class="hand">with all our love</div>
     <h1>Happy 40th, <em id="nm">Aditi</em>!</h1>
@@ -75,6 +76,12 @@ const go = async () => {
   const hidden = (CONFIG.hiddenNames || []).map(n => n.toLowerCase());
   const list = (await loadContributions()).filter(c => !hidden.includes(String(c.name).trim().toLowerCase()));
   all = list; buildPeople(); render(all);
+};
+$("logout").onclick = () => {
+  hide(); who = ""; all = [];
+  $("main").hidden = true; $("lock").hidden = false;
+  $("pw").value = ""; $("err").textContent = "";
+  scrollTo(0, 0);
 };
 $("open").onclick = go;
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
