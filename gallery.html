@@ -28,6 +28,8 @@
     <button class="btn" id="playAll">▶ Play all video messages</button>
   </header>
 
+  <aside class="people" id="people" aria-label="Filter by person"></aside>
+
   <nav class="tabs" id="tabs">
     <a href="#videos" class="on">🎬 Videos <b id="cV"></b></a>
     <a href="#photos">📸 Photos <b id="cP"></b></a>
@@ -68,7 +70,7 @@ const go = async () => {
   $("lock").hidden = true; $("main").hidden = false; confetti(5000);
   const hidden = (CONFIG.hiddenNames || []).map(n => n.toLowerCase());
   const list = (await loadContributions()).filter(c => !hidden.includes(String(c.name).trim().toLowerCase()));
-  render(list);
+  all = list; buildPeople(); render(all);
 };
 $("open").onclick = go;
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
@@ -117,11 +119,28 @@ $("modal").addEventListener("touchend", e => {
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
 }, { passive: true });
 
+// ----- people filter: "All" on top, then one entry per sender -----
+let all = [], who = "";
+function buildPeople() {
+  const by = new Map();
+  all.forEach(c => { const k = String(c.name).trim().toLowerCase(); (by.get(k) || by.set(k, { name: String(c.name).trim(), n: 0 }).get(k)).n += 1; });
+  const people = [...by.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const btn = (k, label, extra = "") => `<button data-k="${esc(k)}" class="${k === who ? "on" : ""}">${esc(label)}${extra}</button>`;
+  $("people").innerHTML = `<h3>💛 People</h3>` + btn("", "✨ All", ` <b>${all.length}</b>`) + people.map(([k, v]) => btn(k, v.name)).join("");
+  $("people").querySelectorAll("button").forEach(b => b.onclick = () => {
+    who = b.dataset.k; buildPeople();
+    render(who ? all.filter(c => String(c.name).trim().toLowerCase() === who) : all);
+    scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+
 function render(list) {
   const people = list.length;
   const photos = list.flatMap(c => c.photos.map(src => ({ kind: "photo", src, name: c.name })));
   const vids = list.filter(c => c.video).map(c => ({ ...c, kind: "video" }));
-  $("sub").textContent = `${people} people who love you sent ${photos.length} photos and ${vids.length} video messages.`;
+  $("sub").textContent = who
+    ? `${list[0].name} sent ${photos.length} photos and ${vids.length} video messages.`
+    : `${people} people who love you sent ${photos.length} photos and ${vids.length} video messages.`;
 
   $("reel").innerHTML = vids.length ? "" : '<p class="hint">No videos yet.</p>';
   vids.forEach((c, i) => {
