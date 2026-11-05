@@ -62,17 +62,13 @@ $("lockTitle").textContent = `A gift for ${CONFIG.herName}`;
 document.title = `${CONFIG.herName}'s ${CONFIG.age}th Scrapbook`;
 $("nm").textContent = CONFIG.herName;
 countdown(CONFIG.birthday, $("cds"), () => { $("lockMsg").textContent = "It's time! 🎉 Enter the secret password to open your gift."; });
-$("lockMsg").textContent = "Your gift opens at 12 AM (India time) on your birthday. Enter the secret password then!";
+$("lockMsg").textContent = "Counting down to your big day… enter the secret password to open your gift.";
 if (DEMO) $("lockMsg").textContent += ` (Demo preview — admin password: ${CONFIG.adminPassword})`;
 
 const go = async () => {
   const v = $("pw").value.trim();
   if (v !== CONFIG.giftPassword && v !== CONFIG.adminPassword) {
     $("err").textContent = "Hmm, that's not it. Try again?";
-    return;
-  }
-  if (v === CONFIG.giftPassword && Date.now() < new Date(CONFIG.birthday).getTime()) {
-    $("err").textContent = "Not quite yet — your gift opens at 12 AM on your birthday! 🎂";
     return;
   }
   $("lock").hidden = true; $("main").hidden = false; confetti(5000);
