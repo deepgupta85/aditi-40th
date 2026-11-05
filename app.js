@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js";
+import { CONFIG } from "./config.js?v=20261105";
 
 export const DEMO = CONFIG.driveApi === "YOUR_APPS_SCRIPT_URL";
 export const MAX_VIDEO_MB = 500;

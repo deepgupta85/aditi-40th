@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Aditi's 40th Scrapbook</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261105">
 </head>
 <body>
 <div class="lock" id="lock">
@@ -29,17 +29,20 @@
     <button class="btn" id="playAll">▶ Play all video messages</button>
   </header>
 
-  <aside class="people" id="people" aria-label="Filter by person"></aside>
-
   <nav class="tabs" id="tabs">
     <a href="#videos" class="on">🎬 Videos <b id="cV"></b></a>
     <a href="#photos">📸 Photos <b id="cP"></b></a>
     <a href="#notesec">💌 Notes <b id="cN"></b></a>
   </nav>
 
+  <div class="layout">
+  <aside class="people" id="people" aria-label="Filter by person"></aside>
+  <div class="content">
   <section class="wrap" id="videos"><h2>🎬 Video messages</h2><div class="reel" id="reel"></div></section>
   <section class="wrap" id="photos"><h2>📸 Memories with you</h2><div class="wall" id="wall"></div></section>
   <section class="wrap" id="notesec"><h2>💌 Post-it notes for you</h2><div class="notes" id="notes"></div></section>
+  </div>
+  </div>
   <footer class="hand" style="font-size:1.6rem">Here's to the next 40 💛</footer>
 </main>
 
@@ -51,8 +54,8 @@
 </div>
 
 <script type="module">
-import { CONFIG } from "./config.js";
-import { DEMO, countdown, confetti, loadContributions, esc } from "./app.js";
+import { CONFIG } from "./config.js?v=20261105";
+import { DEMO, countdown, confetti, loadContributions, esc } from "./app.js?v=20261105";
 
 const $ = id => document.getElementById(id);
 $("lockTitle").textContent = `A gift for ${CONFIG.herName}`;
