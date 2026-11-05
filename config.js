@@ -3,10 +3,10 @@ export const CONFIG = {
   herName: "Aditi",
   age: 40,
 
-  // The moment the gallery unlocks for her (local time of the viewer)
-  birthday: "2026-11-06T00:00:00",
+  // The moment the gallery unlocks for her (12 AM India time, IST)
+  birthday: "2026-11-06T00:00:00+05:30",
 
-  // Password Aditi types on the gallery page (works only after the birthday)
+  // Password Aditi types on the gallery page (works only after the birthday, 12 AM IST)
   giftPassword: "aditi@40",
   // Password YOU use to preview the gallery any time before the birthday
   adminPassword: "preview-only-me",
